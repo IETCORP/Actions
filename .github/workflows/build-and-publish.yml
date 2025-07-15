@@ -1,0 +1,70 @@
+name: Build and Publish to GitHub Packages
+
+on:
+  workflow_call:
+    inputs:
+      project_name:
+        required: true
+        type: string
+      package_name:
+        required: true
+        type: string
+    secrets:
+      GH_PACKAGES_TOKEN:
+        required: true
+        
+permissions:
+  packages: write
+  contents: read
+
+env:
+  ORG: IETCORP
+
+jobs:
+  check_version:
+    runs-on: ubuntu-latest
+    outputs:
+      exists: ${{ steps.check_version.outputs.exists }}
+    steps:
+      - name: Check if version exists
+        id: check_version
+        shell: bash
+        env:
+          PACKAGE_NAME: ${{ inputs.package_name }}
+        run: |
+          VERSION="${GITHUB_REF##*/}"
+          VERSION="${VERSION#v}"
+          echo "Checking $PACKAGE_NAME for version $VERSION..."
+          response=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/orgs/$ORG/packages/nuget/$PACKAGE_NAME/versions")
+          if echo "$response" | jq -e ".[] | select(.name == \"$VERSION\")" > /dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+  pack_and_publish:
+    needs: check_version
+    if: needs.check_version.outputs.exists == 'false'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Restore
+        run: dotnet restore ${{ inputs.project_name }}.csproj
+
+      - name: Build
+        run: dotnet build ${{ inputs.project_name }}.csproj --configuration Release --no-restore
+
+      - name: Pack
+        run: dotnet pack ${{ inputs.project_name }}.csproj --configuration Release --no-build --output nupkg
+
+      - name: Push to GitHub Packages
+        run: dotnet nuget push nupkg\*.nupkg --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" --api-key ${{ secrets.GH_PACKAGES_TOKEN }}
