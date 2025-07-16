@@ -57,8 +57,11 @@ jobs:
         with:
           dotnet-version: '8.x'
 
+      - name: Add GitHub NuGet source
+        run: dotnet nuget add source "https://nuget.pkg.github.com/IETCORP/index.json" --name github --username USERNAME --password ${{ secrets.GH_PACKAGES_TOKEN }} --store-password-in-clear-text
+      
       - name: Restore
-        run: dotnet restore ${{ inputs.project_name }}.csproj --configfile nuget.config
+        run: dotnet restore ${{ inputs.project_name }}.csproj
 
       - name: Build
         run: dotnet build ${{ inputs.project_name }}.csproj --configuration Release --no-restore
