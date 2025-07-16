@@ -58,7 +58,7 @@ jobs:
           dotnet-version: '8.x'
 
       - name: Restore
-        run: dotnet restore ${{ inputs.project_name }}.csproj
+        run: dotnet restore ${{ inputs.project_name }}.csproj --configfile nuget.config
 
       - name: Build
         run: dotnet build ${{ inputs.project_name }}.csproj --configuration Release --no-restore
