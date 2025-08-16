@@ -13,9 +13,7 @@ on:
       GH_PACKAGES_TOKEN:
         required: true
         
-permissions:
-  packages: write
-  contents: read
+permissions: inherit
 
 env:
   ORG: IETCORP
