@@ -10,8 +10,7 @@ on:
         required: true
         type: string
         
-permissions:
-  contents: write
+permissions: inherit
 
 env:
   ORG: IETCORP
