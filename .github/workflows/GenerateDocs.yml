@@ -3,14 +3,12 @@ name: Generate Documentation
 on:
   workflow_call:
     inputs:
-      project_name:
-        required: true
-        type: string
-      project_version:
+      package_name:
         required: true
         type: string
         
 permissions:
+  packages: read
   contents: write
 
 env:
@@ -50,8 +48,8 @@ jobs:
         run: sudo apt-get install -y doxygen graphviz
       - name: Update Doxygen config file
         run: |
-          PROJECT_NAME=${{ inputs.project_name }}
-          PROJECT_VERSION=${{ inputs.project_version }}
+          PROJECT_NAME=${GITHUB_REF_NAME#v}
+          PROJECT_VERSION=${GITHUB_REPOSITORY##*/}
           sed -i "s|^PROJECT_NUMBER .*|PROJECT_NUMBER = ${PROJECT_VERSION}|" docs/Doxyfile
           sed -i "s|^PROJECT_NAME .*|PROJECT_NAME = \"${PROJECT_NAME}\"|" docs/Doxyfile
       - name: Remove previous docs/html folder
@@ -64,7 +62,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs
-          git commit -m "$GITHUB_REF_NAME" || echo "No changes to commit"
+          git commit -m "Docs for $GITHUB_REF_NAME" || echo "No changes to commit"
 
           git push -f origin main
         env:
