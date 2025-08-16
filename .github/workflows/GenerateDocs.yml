@@ -1,0 +1,45 @@
+name: Generate Documentation
+
+on:
+  workflow_call:
+    inputs:
+      project_name:
+        required: true
+        type: string
+      project_version:
+        required: true
+        type: string
+        
+permissions:
+  contents: write
+
+env:
+  ORG: IETCORP
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Doxygen
+        run: sudo apt-get install -y doxygen graphviz
+      - name: Update Doxygen config file
+        run: |
+          PROJECT_NAME=${{ inputs.project_name }}
+          PROJECT_VERSION=${{ inputs.project_version }}
+          sed -i "s|^PROJECT_NUMBER .*|PROJECT_NUMBER = ${PROJECT_VERSION}|" docs/Doxyfile
+          sed -i "s|^PROJECT_NAME .*|PROJECT_NAME = \"${PROJECT_NAME}\"|" docs/Doxyfile
+      - name: Remove previous docs/html folder
+        run: rm -rf docs/html
+      - name: Generate docs
+        run: doxygen docs/Doxyfile
+      - name: Commit output
+        run: |
+          git checkout -B main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs
+          git commit -m "$GITHUB_REF_NAME" || echo "No changes to commit"
+          git push -f origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
