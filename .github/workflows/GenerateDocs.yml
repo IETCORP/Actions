@@ -31,16 +31,20 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git fetch origin docs || true
-          if git show-ref --verify --quiet refs/remotes/origin/docs; then
+          # Check if docs branch exists remotely
+          if git ls-remote --heads origin docs | grep -q "refs/heads/docs"; then
+            git fetch origin docs
             git checkout -B docs origin/docs
           else
             git checkout --orphan docs
           fi
-          
-          rm -rf *
-          cp -r ../docs/html/* .   # just copy the generated html here
-          
+
+          # Copy generated HTML files
+          cp -r docs/html/* .
+
+          # Remove all other files except .git and copied HTML
+          find . -maxdepth 1 -not -path "./.git" -not -path "." -not -path "./*" -exec rm -rf {} +
+
           git add .
           git commit -m "Update docs for $GITHUB_REF_NAME" || echo "No changes to commit"
           git push -f origin docs
