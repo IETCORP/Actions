@@ -35,7 +35,7 @@ jobs:
           git checkout -B docs origin/docs || git checkout --orphan docs
 
           rm -rf *
-          cp -r docs/html/* .   # just copy the generated html here
+          cp -r ../docs/html/* .   # just copy the generated html here
 
           git add .
           git commit -m "Update docs for $GITHUB_REF_NAME" || echo "No changes to commit"
