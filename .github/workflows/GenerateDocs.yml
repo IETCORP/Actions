@@ -9,13 +9,11 @@ permissions:
 env:
   ORG: IETCORP
 
-jobs:
+jobs:    
   build-docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # so you can switch branches
       - name: Install Doxygen
         run: sudo apt-get install -y doxygen graphviz
       - name: Update Doxygen config file
@@ -24,32 +22,17 @@ jobs:
           PROJECT_VERSION=${GITHUB_REPOSITORY##*/}
           sed -i "s|^PROJECT_NUMBER .*|PROJECT_NUMBER = ${PROJECT_VERSION}|" docs/Doxyfile
           sed -i "s|^PROJECT_NAME .*|PROJECT_NAME = \"${PROJECT_NAME}\"|" docs/Doxyfile
+      - name: Remove previous docs/html folder
+        run: rm -rf docs/html
       - name: Generate docs
         run: doxygen docs/Doxyfile
-      - name: Commit docs to docs branch
+      - name: Commit output
         run: |
+          git checkout -B main
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Check if docs branch exists remotely
-          if git ls-remote --heads origin docs | grep -q "refs/heads/docs"; then
-            git fetch origin docs
-            git checkout -B docs origin/docs
-            # Remove all files in the docs branch except .git
-            git rm -r --cached .
-            find . -maxdepth 1 -not -path "./.git" -not -path "." -exec rm -rf {} +
-          else
-            git checkout --orphan docs
-            # Remove all files in the new orphan branch except .git
-            git rm -r --cached . || true
-            find . -maxdepth 1 -not -path "./.git" -not -path "." -exec rm -rf {} +
-          fi
-
-          # Copy generated HTML files
-          cp -r docs/html/* .
-
-          git add .
-          git commit -m "Update docs for $GITHUB_REF_NAME" || echo "No changes to commit"
-          git push -f origin docs
+          git add docs
+          git commit -m "Docs for $GITHUB_REF_NAME" || echo "No changes to commit"
+          git push -f origin main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
