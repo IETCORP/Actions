@@ -32,11 +32,15 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git fetch origin docs || true
-          git checkout -B docs origin/docs || git checkout --orphan docs
-
+          if git show-ref --verify --quiet refs/remotes/origin/docs; then
+            git checkout -B docs origin/docs
+          else
+            git checkout --orphan docs
+          fi
+          
           rm -rf *
           cp -r ../docs/html/* .   # just copy the generated html here
-
+          
           git add .
           git commit -m "Update docs for $GITHUB_REF_NAME" || echo "No changes to commit"
           git push -f origin docs
