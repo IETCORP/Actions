@@ -35,15 +35,18 @@ jobs:
           if git ls-remote --heads origin docs | grep -q "refs/heads/docs"; then
             git fetch origin docs
             git checkout -B docs origin/docs
+            # Remove all files in the docs branch except .git
+            git rm -r --cached .
+            find . -maxdepth 1 -not -path "./.git" -not -path "." -exec rm -rf {} +
           else
             git checkout --orphan docs
+            # Remove all files in the new orphan branch except .git
+            git rm -r --cached . || true
+            find . -maxdepth 1 -not -path "./.git" -not -path "." -exec rm -rf {} +
           fi
 
           # Copy generated HTML files
           cp -r docs/html/* .
-
-          # Remove all other files except .git and copied HTML
-          find . -maxdepth 1 -not -path "./.git" -not -path "." -not -path "./*" -exec rm -rf {} +
 
           git add .
           git commit -m "Update docs for $GITHUB_REF_NAME" || echo "No changes to commit"
