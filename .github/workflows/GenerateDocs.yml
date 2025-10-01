@@ -9,11 +9,13 @@ permissions:
 env:
   ORG: IETCORP
 
-jobs:    
+jobs:
   build-docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # so you can switch branches
       - name: Install Doxygen
         run: sudo apt-get install -y doxygen graphviz
       - name: Update Doxygen config file
@@ -22,18 +24,21 @@ jobs:
           PROJECT_VERSION=${GITHUB_REPOSITORY##*/}
           sed -i "s|^PROJECT_NUMBER .*|PROJECT_NUMBER = ${PROJECT_VERSION}|" docs/Doxyfile
           sed -i "s|^PROJECT_NAME .*|PROJECT_NAME = \"${PROJECT_NAME}\"|" docs/Doxyfile
-      - name: Remove previous docs/html folder
-        run: rm -rf docs/html
       - name: Generate docs
         run: doxygen docs/Doxyfile
-      - name: Commit output
+      - name: Commit docs to docs branch
         run: |
-          git checkout -B main
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs
-          git commit -m "Docs for $GITHUB_REF_NAME" || echo "No changes to commit"
 
-          git push -f origin main
+          git fetch origin docs || true
+          git checkout -B docs origin/docs || git checkout --orphan docs
+
+          rm -rf *
+          cp -r docs/html/* .   # just copy the generated html here
+
+          git add .
+          git commit -m "Update docs for $GITHUB_REF_NAME" || echo "No changes to commit"
+          git push -f origin docs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
